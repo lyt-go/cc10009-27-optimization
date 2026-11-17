@@ -14,12 +14,19 @@ class Store:
         self._tables: dict[str, list[dict[str, Any]]] = {
             name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
         }
+        # 系统表（重试进度、节点派发、终端清单等）：参与存储但不计入业务模块看板。
+        self._system_tables: set[str] = set()
 
     def module_names(self) -> list[str]:
-        return sorted(self._tables)
+        return sorted(name for name in self._tables if name not in self._system_tables)
 
     def rows(self, module: str) -> list[dict[str, Any]]:
         return self._tables.setdefault(module, [])
+
+    def system_rows(self, name: str) -> list[dict[str, Any]]:
+        """内部链路数据表：可读写，但不作为业务模块出现在概览里。"""
+        self._system_tables.add(name)
+        return self._tables.setdefault(name, [])
 
     def find(self, module: str, entry_id: int) -> dict[str, Any] | None:
         for row in self.rows(module):
